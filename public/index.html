@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<title>Tab TSP</title>
+<link type="text/css" href="stylesheets/bootstrap.min.css?20120716_01" rel="stylesheet" />
+<link type="text/css" href="stylesheets/style.css?20120716_01" rel="stylesheet" />
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="javascripts/BpTspSolver.js?20120716_01"></script>
+<script type="text/javascript" src="javascripts/tsp.js?20120716_01"></script>
+<script src="http://www.google.com/jsapi/"></script>
+<script type="text/javascript">
+$(function() {
+  google.load("maps", "3.8", {callback: init, other_params:"sensor=false"});
+  $("#execBtn").click(exec);
+  $("#resetBtn").click(function(){location.reload();});
+
+  var markers;
+  var latlngs;
+
+  var MAX_ITEMS = 20;
+
+  function init() {
+    var myOptions = {
+      zoom: 8,
+      center: new google.maps.LatLng("東京都千代田区丸の内1丁目"),
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+    myMap = new google.maps.Map(document.getElementById("mapView"), myOptions);
+    tsp = new BpTspSolver(myMap, null);
+    tsp.setAvoidHighways(true);
+    markers = new Array();
+    latlngs = new Array();
+    $("#msg").css("color", "black").html("初期化完了");
+  }
+
+  function exec() {
+    var streamId = $("#streamId").val();
+    if ($("#way").val() == "driving") {
+      tsp.setTravelMode(google.maps.DirectionsTravelMode.DRIVING);
+    }
+    else {
+      tsp.setTravelMode(google.maps.DirectionsTravelMode.WALKING);
+    }
+    if (!Number(streamId)) {
+      $("#msg").css("color", "red").html("StreamIdが不正です");
+    }
+    else {
+      if (markers.length != 0) reset();
+      $("#msg").css("color", "blue").html("Itemをtab.doから取得中");
+      $.get(
+        "/proxy",
+        { url: "http://tab.do/api/1/streams/"+streamId+"/items.json" },
+        function(res) {
+          var data = $.parseJSON(res);
+          console.log("data->%o", data);
+          if (data.total <= 0) {
+            $("#msg").css("color", "red").html("該当するItemが無い");
+          }
+          else {
+            $("#msg").css("color", "blue").html("最適なルートを計算中");
+            var markerPos = new Array();
+            for (var i = 0; i< data.total && i < MAX_ITEMS; i++) {
+              if (data.items[i].places != 'undefined') {
+                for (var j = 0; j < data.items[i].places.length; j++) {
+                  var lat = data.items[i].places[j].lat;
+                  var lng = data.items[i].places[j].lon;
+                  var add = data.items[i].places[j].address;
+                  if (add.match(/^[東京|神奈川|千葉|埼玉].*$/)) {
+                  console.log("%o,%o,%o,%o", lat, lng, add, data.items[i].title);
+                  var latlng = new google.maps.LatLng(lat, lng);
+                  latlngs.push(latlng);
+                  var marker = new google.maps.Marker({
+                    position: latlng,
+                    icon: "icons/blue.png",
+                    title: data.items[i].title,
+                    map: myMap
+                  });
+                  markers.push(marker);
+                  tsp.addWaypoint(latlng);
+                  }
+                }
+              }
+            }
+            try {
+              tsp.solveRoundTrip(onSolve);
+            }
+            catch(e) {
+              reset();
+              $("#msg").css("color", "red").html("最適化中にエラー 初期化してください");
+            }
+            var dir = tsp.getGDirections();
+            var order = tsp.getOrder();
+            var durations = tsp.getDurations();
+          }
+        }
+      );
+    }
+  }
+
+  function onSolve(myTsp) {
+    var dirRes = tsp.getGDirections();
+    var dir = dirRes.routes[0];
+    $("#dulation").html(formatTime(getTotalDuration(dir)));
+    $("#length").html(formatLength(getTotalDistance(dir)));
+
+    removeOldMarkers();
+
+    // Clean up old path.
+    if (dirRenderer != null) {
+	    dirRenderer.setMap(null);
+    }
+    dirRenderer = new google.maps.DirectionsRenderer({
+	    directions: dirRes,
+	    hideRouteList: true,
+	    map: myMap,
+	    panel: null,
+	    preserveViewport: false,
+	    suppressInfoWindows: true,
+      suppressMarkers: true });
+    for (var i = 0; i < markers.length; i++) {
+      markers[i].setMap(myMap);
+    }
+    $("#msg").css("color", "black").html("ルート表示完了");
+  }
+
+  function reset() {
+    console.log("reset");
+    if (dirRenderer != null) {
+      dirRenderer.setMap(null);
+    }
+    for (var i = 0; i < markers.length; i++) {
+      markers[i].setMap(null);
+    }
+    for (var i = 0; i < latlngs.length; i++) {
+      tsp.removeWaypoint(latlngs[i]);
+    }
+    markers = new Array();
+    latlngs = new Array();
+  }
+});
+
+</script>
+</head>
+
+<body>
+  <h3>Tab Optimized Route Viewer</h3>
+  <div class="row">
+    <div class="span3">
+      <input class="small" type="text" id="streamId" name="streamId" value="" size="10" placeholder="StreamId"/>
+    </div>
+    <div class="span3">
+      <select class="small" id="way" name="way">
+        <option value="walking" selected=true>徒歩</option>
+        <option value="driving">自動車</option>
+      </select>
+    </div>
+    <!--div class="span3">
+      <select clsss="small" id="pref" multiple=true>
+        <option value="東京都">東京都</option>
+        <option value="神奈川県">神奈川県</option>
+        <option value="千葉県">千葉県</option>
+        <option value="埼玉県">埼玉県</option>
+        <option value="茨城県">茨城県</option>
+        <option value="群馬県">群馬県</option>
+        <option value="栃木県">栃木県</option>
+      </select>
+    </div-->
+    <div class="span2">
+      <button class="btn btn-inverse" id="execBtn">ルート表示</button>
+    </div>
+    <div class="span2">
+      <button class="btn btn-inverse" id="resetBtn">初期化</button>
+    </div>
+    <div class="span3" id="msg">初期化中</div>
+  </div>
+  <div id="mapView"></div>
+  <div class="row">
+    <div class="span1">概算時間</div><div class="span6" id="dulation"></div>
+  </div>
+  <div class="row">
+    <div class="span1">概算距離</div><div class="span6" id="length"></div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+html {
+  height: 100%;
+}
+
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+}
+
+a {
+  color: #00B7FF;
+}
+
+#mapView {
+  height: 80%;
+  width: 100%;
+}
+
+#msg {
+  color: blue;
+}
+
+#mapView img {
+  max-width: none;
+}
+
