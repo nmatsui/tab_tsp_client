@@ -81,6 +81,10 @@ $(function() {
                 }
               }
             }
+            if (markers.length == 0) {
+              $("#msg").css("color", "red").html("該当するItemが無い");
+              return;
+            }
             try {
               tsp.solveRoundTrip(onSolve);
             }
