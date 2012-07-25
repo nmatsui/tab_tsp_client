@@ -50,10 +50,8 @@ $(function() {
       if (markers.length != 0) reset();
       $("#msg").css("color", "blue").html("Itemをtab.doから取得中");
       $.get(
-        "/proxy",
-        { url: "http://tab.do/api/1/streams/"+streamId+"/items.json" },
-        function(res) {
-          var data = $.parseJSON(res);
+        "http://tab.do/api/1/streams/"+streamId+"/items.json",
+        function(data) {
           console.log("data->%o", data);
           if (data.total <= 0) {
             $("#msg").css("color", "red").html("該当するItemが無い");
