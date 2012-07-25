@@ -65,7 +65,7 @@ $(function() {
                   var lat = data.items[i].places[j].lat;
                   var lng = data.items[i].places[j].lon;
                   var add = data.items[i].places[j].address;
-                  if (add.match(/^[東京|神奈川|千葉|埼玉].*$/)) {
+                  if (add && add.match(/^[東京|神奈川|千葉|埼玉].*$/)) {
                   console.log("%o,%o,%o,%o", lat, lng, add, data.items[i].title);
                   var latlng = new google.maps.LatLng(lat, lng);
                   latlngs.push(latlng);
