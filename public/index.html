@@ -7,6 +7,7 @@
 <link type="text/css" href="stylesheets/bootstrap.min.css?20120716_01" rel="stylesheet" />
 <link type="text/css" href="stylesheets/style.css?20120716_01" rel="stylesheet" />
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://raw.github.com/allmarkedup/jQuery-URL-Parser/master/jquery.url.js"></script>
 <script type="text/javascript" src="javascripts/BpTspSolver.js?20120716_01"></script>
 <script type="text/javascript" src="javascripts/tsp.js?20120716_01"></script>
 <script src="http://www.google.com/jsapi/"></script>
@@ -33,6 +34,15 @@ $(function() {
     markers = new Array();
     latlngs = new Array();
     $("#msg").css("color", "black").html("初期化完了");
+    var tab_id = $.url().param("tab_id");
+    if (tab_id) {
+      $("#streamId").val(tab_id);
+      var mode = $.url().param("mode");
+      if (mode.match(/(driving|walking)/)) {
+        $("#way").val(mode);
+      }
+      exec();
+    }
   }
 
   function exec() {
