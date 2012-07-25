@@ -50,10 +50,8 @@ $(function() {
       if (markers.length != 0) reset();
       $("#msg").css("color", "blue").html("Itemをtab.doから取得中");
       $.get(
-        "/proxy",
-        { url: "http://tab.do/api/1/streams/"+streamId+"/items.json" },
-        function(res) {
-          var data = $.parseJSON(res);
+        "http://tab.do/api/1/streams/"+streamId+"/items.json",
+        function(data) {
           console.log("data->%o", data);
           if (data.total <= 0) {
             $("#msg").css("color", "red").html("該当するItemが無い");
@@ -67,7 +65,7 @@ $(function() {
                   var lat = data.items[i].places[j].lat;
                   var lng = data.items[i].places[j].lon;
                   var add = data.items[i].places[j].address;
-                  if (add.match(/^[東京|神奈川|千葉|埼玉].*$/)) {
+                  if (add && add.match(/^[東京|神奈川|千葉|埼玉].*$/)) {
                   console.log("%o,%o,%o,%o", lat, lng, add, data.items[i].title);
                   var latlng = new google.maps.LatLng(lat, lng);
                   latlngs.push(latlng);
@@ -82,6 +80,10 @@ $(function() {
                   }
                 }
               }
+            }
+            if (markers.length == 0) {
+              $("#msg").css("color", "red").html("該当するItemが無い");
+              return;
             }
             try {
               tsp.solveRoundTrip(onSolve);
